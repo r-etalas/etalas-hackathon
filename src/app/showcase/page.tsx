@@ -377,6 +377,8 @@ const ShowcasePage = () => {
                         <DialogContent>
                             <video
                                 controls
+                                controlsList="nodownload"
+                                onContextMenu={(e) => e.preventDefault()}
                                 style={{ width: '100%', marginTop: '16px' }}
                                 src={selectedVideo.video_url}
                                 poster={selectedVideo.thumbnail_url || undefined}

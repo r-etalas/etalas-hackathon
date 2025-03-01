@@ -658,6 +658,8 @@ export default function VideoManagement() {
                         <Box sx={{ width: '100%', mt: 2 }}>
                             <video
                                 controls
+                                controlsList="nodownload"
+                                onContextMenu={(e) => e.preventDefault()}
                                 style={{ width: '100%' }}
                                 src={getVideoUrl(selectedVideo.video_path)}
                                 poster={selectedVideo.thumbnail_url || undefined}
