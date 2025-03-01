@@ -1,0 +1,23 @@
+{
+  "showcase": {
+    "title": "Wedding Showcase",
+    "filters": {
+      "searchPlaceholder": "Search by video name",
+      "location": "Select Location",
+      "weddingSize": "Wedding Size",
+      "month": "Select Month",
+      "sizes": {
+        "small": "10-50 guests",
+        "medium": "50-100 guests",
+        "large": "100+ guests"
+      }
+    },
+    "details": {
+      "location": "Location",
+      "weddingSize": "Wedding Size",
+      "month": "Month",
+      "organizer": "Organizer",
+      "vendors": "Vendors"
+    }
+  }
+} 

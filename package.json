@@ -17,9 +17,12 @@
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.49.1",
     "@types/recharts": "^1.8.29",
+    "antd": "^5.24.2",
+    "i18next": "^24.2.2",
     "next": "15.2.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-i18next": "^15.4.1",
     "recharts": "^2.15.1"
   },
   "devDependencies": {

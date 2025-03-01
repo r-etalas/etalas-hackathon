@@ -1,0 +1,23 @@
+{
+  "showcase": {
+    "title": "ウェディングショーケース",
+    "filters": {
+      "searchPlaceholder": "ビデオ名で検索",
+      "location": "場所を選択",
+      "weddingSize": "結婚式の規模",
+      "month": "月を選択",
+      "sizes": {
+        "small": "10-50名のゲスト",
+        "medium": "50-100名のゲスト",
+        "large": "100名以上のゲスト"
+      }
+    },
+    "details": {
+      "location": "場所",
+      "weddingSize": "結婚式の規模",
+      "month": "月",
+      "organizer": "プランナー",
+      "vendors": "業者"
+    }
+  }
+} 

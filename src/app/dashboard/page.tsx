@@ -26,6 +26,7 @@ import {
     Analytics as AnalyticsIcon,
     ChevronLeft as ChevronLeftIcon,
     ChevronRight as ChevronRightIcon,
+    Store as StoreIcon,
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 import { createBrowserClient } from '@supabase/ssr';
@@ -47,6 +48,7 @@ const menuItems = [
     { text: 'User Management', icon: <PeopleIcon />, index: 1 },
     { text: 'Video Management', icon: <VideocamIcon />, index: 2 },
     { text: 'Analytics', icon: <AnalyticsIcon />, index: 3 },
+    { text: 'Showcase', icon: <StoreIcon />, index: 4, path: '/showcase' },
 ];
 
 function TabPanel(props: TabPanelProps) {
@@ -67,13 +69,6 @@ function TabPanel(props: TabPanelProps) {
             )}
         </div>
     );
-}
-
-function a11yProps(index: number) {
-    return {
-        id: `dashboard-tab-${index}`,
-        'aria-controls': `dashboard-tabpanel-${index}`,
-    };
 }
 
 export default function DashboardPage() {
@@ -97,14 +92,11 @@ export default function DashboardPage() {
         }
     };
 
-    const handleChange = (event: React.SyntheticEvent, newValue: number) => {
-        setValue(newValue);
-        if (isMobile) {
-            setMobileOpen(false);
-        }
-    };
-
     const handleMenuItemClick = (index: number) => {
+        if (menuItems[index].path) {
+            router.push(menuItems[index].path);
+            return;
+        }
         setValue(index);
         if (isMobile) {
             setMobileOpen(false);

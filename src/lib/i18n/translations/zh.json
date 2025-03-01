@@ -1,0 +1,23 @@
+{
+  "showcase": {
+    "title": "婚礼展示",
+    "filters": {
+      "searchPlaceholder": "按视频名称搜索",
+      "location": "选择地点",
+      "weddingSize": "婚礼规模",
+      "month": "选择月份",
+      "sizes": {
+        "small": "10-50位宾客",
+        "medium": "50-100位宾客",
+        "large": "100位以上宾客"
+      }
+    },
+    "details": {
+      "location": "地点",
+      "weddingSize": "婚礼规模",
+      "month": "月份",
+      "organizer": "策划师",
+      "vendors": "供应商"
+    }
+  }
+} 
