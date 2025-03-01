@@ -3,6 +3,28 @@
 import { useState } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import type { UserRole } from '@/types/supabase'
+import {
+    Box,
+    TextField,
+    Button,
+    Typography,
+    Checkbox,
+    FormControlLabel,
+    Link,
+    IconButton,
+    InputAdornment,
+    Paper,
+    Container,
+    Stack,
+    Alert
+} from '@mui/material'
+import {
+    Person,
+    Email,
+    Lock,
+    Visibility,
+    VisibilityOff
+} from '@mui/icons-material'
 
 type AuthFormProps = {
     type: 'login' | 'register'
@@ -16,6 +38,8 @@ export function AuthForm({ type }: AuthFormProps) {
     const [error, setError] = useState<string | null>(null)
     const [message, setMessage] = useState<string | null>(null)
     const [lastAttempt, setLastAttempt] = useState<number>(0)
+    const [agreeToTerms, setAgreeToTerms] = useState(false)
+    const [showPassword, setShowPassword] = useState(false)
 
     const supabase = createBrowserClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -25,9 +49,13 @@ export function AuthForm({ type }: AuthFormProps) {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
 
-        // Check if enough time has passed since last attempt
+        if (type === 'register' && !agreeToTerms) {
+            setError('Anda harus menyetujui Syarat & Ketentuan untuk melanjutkan')
+            return
+        }
+
         const now = Date.now()
-        if (now - lastAttempt < 12000) { // 12 seconds to be safe
+        if (now - lastAttempt < 12000) {
             setError('Mohon tunggu beberapa detik sebelum mencoba lagi')
             return
         }
@@ -39,7 +67,6 @@ export function AuthForm({ type }: AuthFormProps) {
 
         try {
             if (type === 'register') {
-                console.log('Mencoba mendaftarkan user...')
                 const { data: authData, error: authError } = await supabase.auth.signUp({
                     email,
                     password,
@@ -53,8 +80,6 @@ export function AuthForm({ type }: AuthFormProps) {
                     }
                 })
 
-                console.log('Hasil auth signup:', { authData, authError })
-
                 if (authError) {
                     if (authError.message.includes('security purposes')) {
                         throw new Error('Mohon tunggu beberapa detik sebelum mencoba lagi')
@@ -63,13 +88,10 @@ export function AuthForm({ type }: AuthFormProps) {
                 }
 
                 if (authData.user) {
-                    console.log('Registrasi berhasil!')
                     setMessage(
                         'Registrasi berhasil! Silakan cek email Anda untuk verifikasi. ' +
                         'Setelah verifikasi email, Anda bisa login ke aplikasi.'
                     )
-
-                    // Reset form
                     setEmail('')
                     setPassword('')
                     setName('')
@@ -88,7 +110,6 @@ export function AuthForm({ type }: AuthFormProps) {
                 }
 
                 if (session) {
-                    // After successful login, create/update user profile
                     const { error: profileError } = await supabase
                         .from('users')
                         .upsert([
@@ -116,91 +137,199 @@ export function AuthForm({ type }: AuthFormProps) {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-            <div className="max-w-md w-full space-y-8">
-                <div>
-                    <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-                        {type === 'login' ? 'Masuk ke akun Anda' : 'Buat akun baru'}
-                    </h2>
-                </div>
-                <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-                    <div className="rounded-md shadow-sm -space-y-px">
-                        {type === 'register' && (
-                            <div>
-                                <label htmlFor="name" className="sr-only">
-                                    Nama
-                                </label>
-                                <input
-                                    id="name"
-                                    name="name"
-                                    type="text"
-                                    required
-                                    className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                                    placeholder="Nama"
-                                    value={name}
-                                    onChange={(e) => setName(e.target.value)}
-                                />
-                            </div>
-                        )}
-                        <div>
-                            <label htmlFor="email-address" className="sr-only">
-                                Alamat Email
-                            </label>
-                            <input
-                                id="email-address"
-                                name="email"
-                                type="email"
-                                autoComplete="email"
-                                required
-                                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                                placeholder="Alamat Email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                            />
-                        </div>
-                        <div>
-                            <label htmlFor="password" className="sr-only">
-                                Password
-                            </label>
-                            <input
-                                id="password"
-                                name="password"
-                                type="password"
-                                autoComplete="current-password"
-                                required
-                                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                                placeholder="Password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                            />
-                        </div>
-                    </div>
-
-                    {error && (
-                        <div className="text-red-500 text-sm text-center">{error}</div>
-                    )}
-
-                    {message && (
-                        <div className="text-green-500 text-sm text-center">{message}</div>
-                    )}
-
-                    <div>
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+        <Box
+            sx={{
+                minHeight: '100vh',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'linear-gradient(to bottom right, #E0F7FA, #E1F5FE)',
+                py: 6,
+                px: 2
+            }}
+        >
+            <Container maxWidth="lg">
+                <Paper
+                    elevation={24}
+                    sx={{
+                        borderRadius: 4,
+                        overflow: 'hidden',
+                        display: 'grid',
+                        gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }
+                    }}
+                >
+                    {/* Form Section */}
+                    <Box sx={{ p: 4, display: 'flex', flexDirection: 'column' }}>
+                        <Typography
+                            variant="h4"
+                            component="h1"
+                            align="center"
+                            fontWeight="bold"
+                            sx={{ mb: 4 }}
                         >
-                            {loading ? (
-                                'Memproses...'
-                            ) : type === 'login' ? (
-                                'Masuk'
-                            ) : (
-                                'Daftar'
+                            Hello, friend!
+                        </Typography>
+
+                        <Box
+                            component="form"
+                            onSubmit={handleSubmit}
+                            sx={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: 3,
+                                flexGrow: 1
+                            }}
+                        >
+                            <Stack spacing={2}>
+                                {type === 'register' && (
+                                    <TextField
+                                        fullWidth
+                                        required
+                                        id="name"
+                                        name="name"
+                                        label="Name"
+                                        value={name}
+                                        onChange={(e) => setName(e.target.value)}
+                                        InputProps={{
+                                            startAdornment: (
+                                                <InputAdornment position="start">
+                                                    <Person />
+                                                </InputAdornment>
+                                            ),
+                                        }}
+                                    />
+                                )}
+
+                                <TextField
+                                    fullWidth
+                                    required
+                                    id="email"
+                                    name="email"
+                                    type="email"
+                                    label="E-mail"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    InputProps={{
+                                        startAdornment: (
+                                            <InputAdornment position="start">
+                                                <Email />
+                                            </InputAdornment>
+                                        ),
+                                    }}
+                                />
+
+                                <TextField
+                                    fullWidth
+                                    required
+                                    id="password"
+                                    name="password"
+                                    type={showPassword ? 'text' : 'password'}
+                                    label="Password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    InputProps={{
+                                        startAdornment: (
+                                            <InputAdornment position="start">
+                                                <Lock />
+                                            </InputAdornment>
+                                        ),
+                                        endAdornment: (
+                                            <InputAdornment position="end">
+                                                <IconButton
+                                                    onClick={() => setShowPassword(!showPassword)}
+                                                    edge="end"
+                                                >
+                                                    {showPassword ? <VisibilityOff /> : <Visibility />}
+                                                </IconButton>
+                                            </InputAdornment>
+                                        ),
+                                    }}
+                                />
+                            </Stack>
+
+                            {type === 'register' && (
+                                <FormControlLabel
+                                    control={
+                                        <Checkbox
+                                            checked={agreeToTerms}
+                                            onChange={(e) => setAgreeToTerms(e.target.checked)}
+                                            color="primary"
+                                        />
+                                    }
+                                    label={
+                                        <Typography variant="body2">
+                                            I&apos;ve read and agree to{' '}
+                                            <Link href="#" underline="hover">
+                                                Terms & Conditions
+                                            </Link>
+                                        </Typography>
+                                    }
+                                />
                             )}
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
+
+                            {error && <Alert severity="error">{error}</Alert>}
+                            {message && <Alert severity="success">{message}</Alert>}
+
+                            <Button
+                                type="submit"
+                                variant="contained"
+                                size="large"
+                                disabled={loading || (type === 'register' && !agreeToTerms)}
+                                sx={{
+                                    mt: 2,
+                                    py: 1.5,
+                                    background: 'linear-gradient(to right, #4FC3F7, #2196F3)',
+                                    borderRadius: 3,
+                                    '&:hover': {
+                                        background: 'linear-gradient(to right, #29B6F6, #1E88E5)',
+                                    }
+                                }}
+                            >
+                                {loading ? 'Processing...' : type === 'login' ? 'Sign in' : 'CREATE ACCOUNT'}
+                            </Button>
+
+                            <Box sx={{ textAlign: 'center', mt: 2 }}>
+                                <Typography variant="body2" color="text.secondary">
+                                    {type === 'login' ? (
+                                        <>
+                                            Don&apos;t have an account?{' '}
+                                            <Link href="/auth/register" underline="hover">
+                                                Sign up
+                                            </Link>
+                                        </>
+                                    ) : (
+                                        <>
+                                            Already have an account?{' '}
+                                            <Link href="/auth/login" underline="hover">
+                                                Sign in
+                                            </Link>
+                                        </>
+                                    )}
+                                </Typography>
+                            </Box>
+                        </Box>
+                    </Box>
+
+                    {/* Welcome Section */}
+                    <Box
+                        sx={{
+                            display: { xs: 'none', md: 'flex' },
+                            flexDirection: 'column',
+                            justifyContent: 'center',
+                            p: 4,
+                            background: 'linear-gradient(to bottom right, #4FC3F7, #2196F3)',
+                            color: 'white'
+                        }}
+                    >
+                        <Typography variant="h3" component="h2" fontWeight="bold" sx={{ mb: 2 }}>
+                            Glad to see You!
+                        </Typography>
+                        <Typography variant="h6" sx={{ opacity: 0.9 }}>
+                            Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+                        </Typography>
+                    </Box>
+                </Paper>
+            </Container>
+        </Box>
     )
 } 
