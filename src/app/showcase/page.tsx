@@ -5,7 +5,7 @@ import { PlayArrow } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import i18next from 'i18next';
 import { createBrowserClient } from '@supabase/ssr';
-import { Session } from '@supabase/supabase-js';
+import { User } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
 import {
     Typography,
@@ -56,7 +56,7 @@ const ShowcasePage = () => {
     const [selectedSize, setSelectedSize] = useState<string>('');
     const [selectedMonth, setSelectedMonth] = useState<string>('');
     const [selectedDuration, setSelectedDuration] = useState<string>('');
-    const [session, setSession] = useState<Session | null>(null);
+    const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [selectedVideo, setSelectedVideo] = useState<WeddingVideo | null>(null);
     const [openDialog, setOpenDialog] = useState(false);
 
@@ -72,10 +72,10 @@ const ShowcasePage = () => {
 
     useEffect(() => {
         const getUser = async () => {
-            const { data: { user: currentUser } } = await supabase.auth.getUser();
-            setSession(currentUser);
+            const { data: { user } } = await supabase.auth.getUser();
+            setCurrentUser(user);
 
-            if (!currentUser) {
+            if (!user) {
                 router.push('/auth/login');
             }
         };
@@ -83,7 +83,7 @@ const ShowcasePage = () => {
         getUser();
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-            setSession(session);
+            setCurrentUser(session?.user || null);
             if (!session) {
                 router.push('/auth/login');
             }
@@ -91,6 +91,12 @@ const ShowcasePage = () => {
 
         return () => subscription.unsubscribe();
     }, [supabase.auth, router]);
+
+    useEffect(() => {
+        if (currentUser) {
+            console.log('User is logged in:', currentUser.email);
+        }
+    }, [currentUser]);
 
     useEffect(() => {
         const fetchVideos = async () => {

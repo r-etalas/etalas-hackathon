@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
-import type { UserRole } from '@/types/supabase'
 import {
     Box,
     TextField,

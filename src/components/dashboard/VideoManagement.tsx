@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import {
     Box,
     Paper,
@@ -22,8 +23,6 @@ import {
     Alert,
     CircularProgress,
     LinearProgress,
-    Card,
-    CardMedia,
 } from '@mui/material';
 import {
     Delete as DeleteIcon,
@@ -121,7 +120,7 @@ export default function VideoManagement() {
 
     useEffect(() => {
         fetchVideos();
-    }, []);
+    }, [fetchVideos]);
 
     const handleOpenDialog = (video?: WeddingVideo) => {
         if (video) {
@@ -232,7 +231,7 @@ export default function VideoManagement() {
                     });
 
                     const fileName = `thumbnail_${Date.now()}_${session.user.id}.jpg`;
-                    const { data: uploadData, error: uploadError } = await supabase.storage
+                    const { error: uploadError } = await supabase.storage
                         .from('videos')
                         .upload(`thumbnails/${fileName}`, blob, {
                             contentType: 'image/jpeg',
@@ -527,12 +526,12 @@ export default function VideoManagement() {
                                 </TableCell>
                                 <TableCell>
                                     {video.thumbnail_url && (
-                                        <img
+                                        <Image
                                             src={video.thumbnail_url}
                                             alt={video.title}
+                                            width={50}
+                                            height={50}
                                             style={{
-                                                width: '50px',
-                                                height: '50px',
                                                 objectFit: 'cover'
                                             }}
                                         />
