@@ -109,45 +109,56 @@ export function AuthForm({ type }: AuthFormProps) {
                 }
 
                 if (session) {
-                    // Get user role from database
-                    const { data: userData, error: userError } = await supabase
-                        .from('users')
-                        .select('role')
-                        .eq('id', session.user.id)
-                        .single()
+                    try {
+                        // Get user role from database
+                        const { data: userData, error: userError } = await supabase
+                            .from('users')
+                            .select('role, name')
+                            .eq('id', session.user.id)
+                            .single()
 
-                    if (userError) {
-                        console.error('Error fetching user role:', userError)
-                        throw new Error('Gagal mengambil data pengguna')
-                    }
+                        if (userError) {
+                            console.error('Error fetching user role:', userError)
+                            throw new Error('Gagal mengambil data pengguna')
+                        }
 
-                    // Update or create user profile if needed
-                    const { error: profileError } = await supabase
-                        .from('users')
-                        .upsert([
-                            {
-                                id: session.user.id,
-                                email: session.user.email,
-                                name: session.user.user_metadata.name,
-                                role: userData?.role || 'member',
-                            },
-                        ], { onConflict: 'id' })
+                        // Only update if data is different
+                        const currentName = userData?.name || session.user.user_metadata.name
+                        const currentRole = userData?.role || 'member'
 
-                    if (profileError) {
-                        console.error('Error updating profile:', profileError)
-                    }
+                        if (currentName !== session.user.user_metadata.name || !userData) {
+                            const { error: profileError } = await supabase
+                                .from('users')
+                                .upsert({
+                                    id: session.user.id,
+                                    email: session.user.email,
+                                    name: currentName,
+                                    role: currentRole,
+                                    updated_at: new Date().toISOString()
+                                })
 
-                    // Redirect based on role
-                    if (userData?.role === 'admin') {
-                        window.location.href = '/dashboard'
-                    } else {
+                            if (profileError) {
+                                console.error('Error updating profile:', profileError)
+                                // Continue with redirect even if profile update fails
+                            }
+                        }
+
+                        // Redirect based on role
+                        if (userData?.role === 'admin') {
+                            window.location.href = '/dashboard'
+                        } else {
+                            window.location.href = '/showcase'
+                        }
+                    } catch (error) {
+                        console.error('Error in profile update:', error)
+                        // Continue with redirect even if there's an error
                         window.location.href = '/showcase'
                     }
                 }
             }
-        } catch (err) {
-            console.error('Error dalam proses:', err)
-            setError(err instanceof Error ? err.message : 'Terjadi kesalahan')
+        } catch (error) {
+            console.error('Auth error:', error)
+            setError(error instanceof Error ? error.message : 'Terjadi kesalahan yang tidak diketahui')
         } finally {
             setLoading(false)
         }
