@@ -6,6 +6,12 @@ Selamat datang di repositori Etalas Hackathon! 🚀
 
 Proyek ini adalah bagian dari hackathon yang bertujuan untuk mengembangkan solusi inovatif dalam bentuk aplikasi web.
 
+## Demo
+
+Anda dapat mencoba aplikasi ini secara langsung di:
+
+- [Etalas Hackathon Demo](https://etalas-hackathon.vercel.app/auth/register)
+
 ## Teknologi yang Digunakan
 
 - Next.js - Framework React untuk produksi
