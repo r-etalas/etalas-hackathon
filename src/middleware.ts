@@ -59,17 +59,10 @@ export async function middleware(request: NextRequest) {
     if (!error && userData) {
       const isAdmin = userData.role === 'admin'
       const isDashboardPath = request.nextUrl.pathname.startsWith('/dashboard')
-      const isShowcasePath = request.nextUrl.pathname.startsWith('/showcase')
 
       // Redirect non-admin users trying to access dashboard
       if (isDashboardPath && !isAdmin) {
         const redirectUrl = new URL('/showcase', request.url)
-        return NextResponse.redirect(redirectUrl)
-      }
-
-      // Optional: Redirect admin users from showcase to dashboard
-      if (isShowcasePath && isAdmin) {
-        const redirectUrl = new URL('/dashboard', request.url)
         return NextResponse.redirect(redirectUrl)
       }
     }
