@@ -110,6 +110,19 @@ export function AuthForm({ type }: AuthFormProps) {
                 }
 
                 if (session) {
+                    // Get user role from database
+                    const { data: userData, error: userError } = await supabase
+                        .from('users')
+                        .select('role')
+                        .eq('id', session.user.id)
+                        .single()
+
+                    if (userError) {
+                        console.error('Error fetching user role:', userError)
+                        throw new Error('Gagal mengambil data pengguna')
+                    }
+
+                    // Update or create user profile if needed
                     const { error: profileError } = await supabase
                         .from('users')
                         .upsert([
@@ -117,7 +130,7 @@ export function AuthForm({ type }: AuthFormProps) {
                                 id: session.user.id,
                                 email: session.user.email,
                                 name: session.user.user_metadata.name,
-                                role: 'member' as UserRole,
+                                role: userData?.role || 'member',
                             },
                         ], { onConflict: 'id' })
 
@@ -125,7 +138,12 @@ export function AuthForm({ type }: AuthFormProps) {
                         console.error('Error updating profile:', profileError)
                     }
 
-                    window.location.href = '/dashboard'
+                    // Redirect based on role
+                    if (userData?.role === 'admin') {
+                        window.location.href = '/dashboard'
+                    } else {
+                        window.location.href = '/showcase'
+                    }
                 }
             }
         } catch (err) {

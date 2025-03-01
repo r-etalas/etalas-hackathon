@@ -34,13 +34,51 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // Refresh session if expired
-  await supabase.auth.getSession()
+  // Paths that require authentication
+  const protectedPaths = ['/dashboard', '/showcase']
+  const isProtectedPath = protectedPaths.some(path => request.nextUrl.pathname.startsWith(path))
+
+  // Get session
+  const { data: { session } } = await supabase.auth.getSession()
+
+  // If accessing protected path without session, redirect to login
+  if (isProtectedPath && !session) {
+    const redirectUrl = new URL('/auth/login', request.url)
+    return NextResponse.redirect(redirectUrl)
+  }
+
+  // If we have a session, check role-based access
+  if (session) {
+    // Get user role from database
+    const { data: userData, error } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', session.user.id)
+      .single()
+
+    if (!error && userData) {
+      const isAdmin = userData.role === 'admin'
+      const isDashboardPath = request.nextUrl.pathname.startsWith('/dashboard')
+      const isShowcasePath = request.nextUrl.pathname.startsWith('/showcase')
+
+      // Redirect non-admin users trying to access dashboard
+      if (isDashboardPath && !isAdmin) {
+        const redirectUrl = new URL('/showcase', request.url)
+        return NextResponse.redirect(redirectUrl)
+      }
+
+      // Optional: Redirect admin users from showcase to dashboard
+      if (isShowcasePath && isAdmin) {
+        const redirectUrl = new URL('/dashboard', request.url)
+        return NextResponse.redirect(redirectUrl)
+      }
+    }
+  }
 
   return response
 }
 
-// Specify which routes should be protected
+// Specify which routes the middleware should run on
 export const config = {
   matcher: [
     /*
