@@ -6,17 +6,27 @@
       "location": "場所を選択",
       "weddingSize": "結婚式の規模",
       "month": "月を選択",
+      "duration": "動画の長さ",
+      "allLocations": "すべての場所",
+      "allMonths": "すべての月",
+      "allSizes": "すべての規模",
+      "durations": {
+        "all": "すべての長さ",
+        "short": "0-5分",
+        "medium": "5-10分",
+        "long": "10分以上"
+      },
       "sizes": {
-        "small": "10-50名のゲスト",
-        "medium": "50-100名のゲスト",
-        "large": "100名以上のゲスト"
+        "small": "10-50名",
+        "medium": "50-100名",
+        "large": "100名以上"
       }
     },
     "details": {
       "location": "場所",
       "weddingSize": "結婚式の規模",
       "month": "月",
-      "organizer": "プランナー",
+      "organizer": "オーガナイザー",
       "vendors": "業者"
     }
   }

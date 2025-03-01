@@ -39,21 +39,21 @@ export async function middleware(request: NextRequest) {
   const isProtectedPath = protectedPaths.some(path => request.nextUrl.pathname.startsWith(path))
 
   // Get session
-  const { data: { session } } = await supabase.auth.getSession()
+  const { data: { user } } = await supabase.auth.getUser()
 
   // If accessing protected path without session, redirect to login
-  if (isProtectedPath && !session) {
+  if (isProtectedPath && !user) {
     const redirectUrl = new URL('/auth/login', request.url)
     return NextResponse.redirect(redirectUrl)
   }
 
   // If we have a session, check role-based access
-  if (session) {
+  if (user) {
     // Get user role from database
     const { data: userData, error } = await supabase
       .from('users')
       .select('role')
-      .eq('id', session.user.id)
+      .eq('id', user.id)
       .single()
 
     if (!error && userData) {

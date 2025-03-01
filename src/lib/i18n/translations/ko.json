@@ -6,18 +6,28 @@
       "location": "장소 선택",
       "weddingSize": "웨딩 규모",
       "month": "월 선택",
+      "duration": "영상 길이",
+      "allLocations": "모든 장소",
+      "allMonths": "모든 월",
+      "allSizes": "모든 규모",
+      "durations": {
+        "all": "모든 길이",
+        "short": "0-5분",
+        "medium": "5-10분",
+        "long": "10분 이상"
+      },
       "sizes": {
-        "small": "10-50명 하객",
-        "medium": "50-100명 하객",
-        "large": "100명 이상 하객"
+        "small": "10-50명",
+        "medium": "50-100명",
+        "large": "100명 이상"
       }
     },
     "details": {
       "location": "장소",
       "weddingSize": "웨딩 규모",
       "month": "월",
-      "organizer": "웨딩플래너",
-      "vendors": "업체"
+      "organizer": "주최자",
+      "vendors": "공급업체"
     }
   }
 } 

@@ -175,47 +175,55 @@ export default function VideoManagement() {
         return null;
     };
 
-    const generateThumbnail = (file: File): Promise<string> => {
+    const generateThumbnail = async (file: File): Promise<string> => {
+        // Check session first
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+            throw new Error('Anda harus login terlebih dahulu');
+        }
+
         return new Promise((resolve, reject) => {
             const video = document.createElement('video');
             const canvas = document.createElement('canvas');
             const url = URL.createObjectURL(file);
 
+            video.src = url;
+            video.crossOrigin = 'anonymous';
+
             video.onerror = (e) => {
                 URL.revokeObjectURL(url);
-                reject(new Error('Gagal memuat video'));
+                reject(new Error(`Gagal memuat video: ${e}`));
             };
 
             video.onloadedmetadata = () => {
-                // Set video dimensions
-                video.width = 320;  // thumbnail width
-                video.height = video.videoHeight * (320 / video.videoWidth);
+                try {
+                    canvas.width = 320;  // thumbnail width
+                    canvas.height = Math.floor(video.videoHeight * (320 / video.videoWidth));
+                    video.width = canvas.width;
+                    video.height = canvas.height;
+                } catch (error) {
+                    URL.revokeObjectURL(url);
+                    reject(new Error(`Error saat mengatur dimensi: ${error}`));
+                }
             };
 
             video.onloadeddata = () => {
                 try {
-                    // Ambil frame pada detik pertama
                     video.currentTime = 1;
                 } catch (error) {
                     URL.revokeObjectURL(url);
-                    reject(error);
+                    reject(new Error(`Error saat mengatur currentTime: ${error}`));
                 }
             };
 
             video.onseeked = async () => {
                 try {
-                    // Set canvas dimensions
-                    canvas.width = video.width;
-                    canvas.height = video.height;
-
-                    // Draw video frame to canvas
                     const ctx = canvas.getContext('2d');
                     if (!ctx) {
                         throw new Error('Gagal membuat context canvas');
                     }
                     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-                    // Convert canvas to blob
                     const blob = await new Promise<Blob>((resolve, reject) => {
                         canvas.toBlob((b) => {
                             if (b) resolve(b);
@@ -223,35 +231,33 @@ export default function VideoManagement() {
                         }, 'image/jpeg', 0.7);
                     });
 
-                    // Upload thumbnail
-                    const fileName = `thumbnail_${Date.now()}.jpg`;
-                    const { error: uploadError } = await supabase.storage
+                    const fileName = `thumbnail_${Date.now()}_${session.user.id}.jpg`;
+                    const { data: uploadData, error: uploadError } = await supabase.storage
                         .from('videos')
                         .upload(`thumbnails/${fileName}`, blob, {
                             contentType: 'image/jpeg',
-                            upsert: false
+                            cacheControl: '3600',
+                            upsert: true // mengizinkan overwrite jika file sudah ada
                         });
 
                     if (uploadError) {
-                        throw uploadError;
+                        if (uploadError.message.includes('row-level security')) {
+                            throw new Error('Tidak memiliki izin untuk mengupload thumbnail. Silakan cek kembali login Anda.');
+                        }
+                        throw new Error(`Gagal mengupload thumbnail: ${uploadError.message}`);
                     }
 
-                    // Get public URL
                     const { data: { publicUrl } } = supabase.storage
                         .from('videos')
                         .getPublicUrl(`thumbnails/${fileName}`);
 
+                    URL.revokeObjectURL(url);
                     resolve(publicUrl);
                 } catch (error) {
-                    reject(error);
-                } finally {
                     URL.revokeObjectURL(url);
+                    reject(error);
                 }
             };
-
-            // Load video
-            video.src = url;
-            video.load();
         });
     };
 

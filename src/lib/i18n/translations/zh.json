@@ -6,6 +6,16 @@
       "location": "选择地点",
       "weddingSize": "婚礼规模",
       "month": "选择月份",
+      "duration": "视频时长",
+      "allLocations": "所有地点",
+      "allMonths": "所有月份",
+      "allSizes": "所有规模",
+      "durations": {
+        "all": "所有时长",
+        "short": "0-5分钟",
+        "medium": "5-10分钟",
+        "long": "10分钟以上"
+      },
       "sizes": {
         "small": "10-50位宾客",
         "medium": "50-100位宾客",
@@ -16,7 +26,7 @@
       "location": "地点",
       "weddingSize": "婚礼规模",
       "month": "月份",
-      "organizer": "策划师",
+      "organizer": "组织者",
       "vendors": "供应商"
     }
   }

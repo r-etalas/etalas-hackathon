@@ -22,6 +22,12 @@ i18n
     interpolation: {
       escapeValue: false,
     },
+    debug: true,
+    returnNull: false,
+    returnEmptyString: false,
+    returnObjects: true,
+    keySeparator: '.',
+    nsSeparator: ':',
   });
 
 export default i18n; 

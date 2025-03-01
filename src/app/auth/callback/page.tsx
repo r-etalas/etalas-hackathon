@@ -22,35 +22,35 @@ export default function AuthCallbackPage() {
         const handleEmailVerification = async () => {
             try {
                 // Get the current session first
-                const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+                const { data: { user }, error: userError } = await supabase.auth.getUser()
 
-                if (sessionError) {
-                    console.error('Session error:', sessionError)
-                    throw sessionError
+                if (userError) {
+                    console.error('Session error:', userError)
+                    throw userError
                 }
 
-                console.log('Initial session check:', session)
+                console.log('Initial session check:', user)
 
                 // If we have a session, the email is verified
-                if (session) {
+                if (user) {
                     try {
                         // Validate required user data
-                        if (!session.user.id || !session.user.email) {
+                        if (!user.id || !user.email) {
                             throw new Error('Missing required user data')
                         }
 
                         // Log user data before creating profile
                         console.log('User data:', {
-                            id: session.user.id,
-                            email: session.user.email,
-                            metadata: session.user.user_metadata,
+                            id: user.id,
+                            email: user.email,
+                            metadata: user.user_metadata,
                         })
 
                         // Check if user already exists
                         const { data: existingUser, error: checkError } = await supabase
                             .from('users')
                             .select('id')
-                            .eq('id', session.user.id)
+                            .eq('id', user.id)
                             .single()
 
                         if (checkError && checkError.code !== 'PGRST116') { // PGRST116 means no rows returned
@@ -69,9 +69,9 @@ export default function AuthCallbackPage() {
 
                         // Prepare profile data (simplified)
                         const profileData = {
-                            id: session.user.id,
-                            email: session.user.email,
-                            name: session.user.user_metadata.name || session.user.email?.split('@')[0] || 'User',
+                            id: user.id,
+                            email: user.email,
+                            name: user.user_metadata.name || user.email?.split('@')[0] || 'User',
                             role: 'member' as UserRole
                         }
 

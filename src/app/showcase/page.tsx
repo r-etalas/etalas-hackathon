@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { PlayArrow } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
+import i18next from 'i18next';
 import { createBrowserClient } from '@supabase/ssr';
 import { Session } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
@@ -47,13 +48,14 @@ interface WeddingVideo {
 }
 
 const ShowcasePage = () => {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const router = useRouter();
     const [videos, setVideos] = useState<WeddingVideo[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedLocation, setSelectedLocation] = useState<string>('');
     const [selectedSize, setSelectedSize] = useState<string>('');
     const [selectedMonth, setSelectedMonth] = useState<string>('');
+    const [selectedDuration, setSelectedDuration] = useState<string>('');
     const [session, setSession] = useState<Session | null>(null);
     const [selectedVideo, setSelectedVideo] = useState<WeddingVideo | null>(null);
     const [openDialog, setOpenDialog] = useState(false);
@@ -63,17 +65,22 @@ const ShowcasePage = () => {
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     );
 
-    useEffect(() => {
-        const getSession = async () => {
-            const { data: { session: currentSession } } = await supabase.auth.getSession();
-            setSession(currentSession);
+    const handleLogout = async () => {
+        await supabase.auth.signOut();
+        router.push('/auth/login');
+    };
 
-            if (!currentSession) {
+    useEffect(() => {
+        const getUser = async () => {
+            const { data: { user: currentUser } } = await supabase.auth.getUser();
+            setSession(currentUser);
+
+            if (!currentUser) {
                 router.push('/auth/login');
             }
         };
 
-        getSession();
+        getUser();
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
             setSession(session);
@@ -103,6 +110,29 @@ const ShowcasePage = () => {
         fetchVideos();
     }, [supabase]);
 
+    useEffect(() => {
+        // Force a re-render when language changes
+        const handleLanguageChange = () => {
+            console.log('Current language:', i18n.language);
+            console.log('Translation test:', {
+                duration: t('showcase.filters.duration'),
+                all: t('showcase.filters.durations.all'),
+                short: t('showcase.filters.durations.short'),
+                medium: t('showcase.filters.durations.medium'),
+                long: t('showcase.filters.durations.long')
+            });
+            setSearchTerm(searchTerm);
+        };
+
+        i18n.on('languageChanged', handleLanguageChange);
+        // Log on initial mount
+        handleLanguageChange();
+
+        return () => {
+            i18n.off('languageChanged', handleLanguageChange);
+        };
+    }, [i18n, searchTerm, t]);
+
     const handleVideoClick = (video: WeddingVideo) => {
         setSelectedVideo(video);
         setOpenDialog(true);
@@ -125,14 +155,32 @@ const ShowcasePage = () => {
         setSelectedMonth(event.target.value);
     };
 
+    const handleDurationChange = (event: SelectChangeEvent) => {
+        setSelectedDuration(event.target.value);
+    };
+
+    const getDurationInMinutes = (seconds: number | null): number => {
+        if (!seconds) return 0;
+        return Math.floor(seconds / 60);
+    };
+
     const filteredVideos = videos.filter((video) => {
         const matchesSearch = video.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
             (video.description?.toLowerCase() || '').includes(searchTerm.toLowerCase());
         const matchesLocation = !selectedLocation || video.description?.toLowerCase().includes(selectedLocation.toLowerCase());
         const matchesSize = !selectedSize || video.description?.toLowerCase().includes(selectedSize.toLowerCase());
-        const matchesMonth = !selectedMonth || new Date(video.created_at).toLocaleString('default', { month: 'long' }) === selectedMonth;
 
-        return matchesSearch && matchesLocation && matchesSize && matchesMonth;
+        const videoMonth = new Date(video.created_at).toLocaleString(i18next.language, { month: 'long' });
+        const matchesMonth = !selectedMonth || videoMonth === selectedMonth;
+
+        const durationInMinutes = getDurationInMinutes(video.duration);
+        const matchesDuration = !selectedDuration || (
+            (selectedDuration === '0-5' && durationInMinutes >= 0 && durationInMinutes <= 5) ||
+            (selectedDuration === '5-10' && durationInMinutes > 5 && durationInMinutes <= 10) ||
+            (selectedDuration === '10+' && durationInMinutes > 10)
+        );
+
+        return matchesSearch && matchesLocation && matchesSize && matchesMonth && matchesDuration;
     });
 
     const formatDuration = (seconds: number | null) => {
@@ -148,7 +196,17 @@ const ShowcasePage = () => {
                 <Typography variant="h4" component="h1">
                     {t('showcase.title')}
                 </Typography>
-                <LanguageSwitcher />
+                <Stack direction="row" spacing={2} alignItems="center">
+                    <LanguageSwitcher />
+                    <Button
+                        variant="outlined"
+                        color="primary"
+                        onClick={handleLogout}
+                        size="small"
+                    >
+                        Logout
+                    </Button>
+                </Stack>
             </Box>
 
             <Stack spacing={3}>
@@ -170,7 +228,7 @@ const ShowcasePage = () => {
                             onChange={handleLocationChange}
                             label={t('showcase.filters.location')}
                         >
-                            <MenuItem value="">All Locations</MenuItem>
+                            <MenuItem value="">{t('showcase.filters.allLocations')}</MenuItem>
                             <MenuItem value="Bali">Bali</MenuItem>
                             <MenuItem value="Jakarta">Jakarta</MenuItem>
                             <MenuItem value="Komodo">Komodo</MenuItem>
@@ -186,7 +244,7 @@ const ShowcasePage = () => {
                             onChange={handleSizeChange}
                             label={t('showcase.filters.weddingSize')}
                         >
-                            <MenuItem value="">All Sizes</MenuItem>
+                            <MenuItem value="">{t('showcase.filters.allSizes')}</MenuItem>
                             <MenuItem value="10-50">{t('showcase.filters.sizes.small')}</MenuItem>
                             <MenuItem value="50-100">{t('showcase.filters.sizes.medium')}</MenuItem>
                             <MenuItem value="100+">{t('showcase.filters.sizes.large')}</MenuItem>
@@ -202,15 +260,39 @@ const ShowcasePage = () => {
                             onChange={handleMonthChange}
                             label={t('showcase.filters.month')}
                         >
-                            <MenuItem value="">All Months</MenuItem>
+                            <MenuItem value="">{t('showcase.filters.allMonths')}</MenuItem>
                             {Array.from({ length: 12 }, (_, i) => {
-                                const month = new Date(0, i).toLocaleString('default', { month: 'long' });
+                                const month = new Date(0, i).toLocaleString(i18next.language, { month: 'long' });
                                 return (
                                     <MenuItem key={month} value={month}>
                                         {month}
                                     </MenuItem>
                                 );
                             })}
+                        </Select>
+                    </FormControl>
+
+                    <FormControl sx={{ width: 200 }} size="small">
+                        <InputLabel>
+                            {t('showcase.filters.duration')}
+                        </InputLabel>
+                        <Select
+                            value={selectedDuration}
+                            onChange={handleDurationChange}
+                            label={t('showcase.filters.duration')}
+                        >
+                            <MenuItem value="">
+                                {t('showcase.filters.durations.all', 'All Durations')}
+                            </MenuItem>
+                            <MenuItem value="0-5">
+                                {t('showcase.filters.durations.short', '0-5 minutes')}
+                            </MenuItem>
+                            <MenuItem value="5-10">
+                                {t('showcase.filters.durations.medium', '5-10 minutes')}
+                            </MenuItem>
+                            <MenuItem value="10+">
+                                {t('showcase.filters.durations.long', 'More than 10 minutes')}
+                            </MenuItem>
                         </Select>
                     </FormControl>
                 </Stack>
