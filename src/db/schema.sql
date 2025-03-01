@@ -24,17 +24,64 @@ create policy "Public users are viewable by everyone."
   on users for select
   using ( true );
 
-create policy "Enable insert for authenticated users only"
+-- Allow authenticated users with admin role to insert users
+create policy "Enable insert for admin users only"
   on users for insert
-  with check (auth.role() = 'authenticated');
+  using ( 
+    exists (
+      select 1 from users
+      where id = auth.uid()
+      and role = 'admin'
+    )
+  );
 
-create policy "Enable update for users based on id"
+-- Allow users to update their own profile, or admin can update any profile
+create policy "Enable update for users based on role"
   on users for update
-  using ( auth.uid() = id );
+  using (
+    auth.uid() = id 
+    or 
+    exists (
+      select 1 from users
+      where id = auth.uid()
+      and role = 'admin'
+    )
+  );
 
-create policy "Enable delete for users based on id"
+-- Allow admin to delete users
+create policy "Enable delete for admin users only"
   on users for delete
-  using ( auth.uid() = id );
+  using (
+    exists (
+      select 1 from users
+      where id = auth.uid()
+      and role = 'admin'
+    )
+  );
+
+-- Create helper function to check if user is admin
+create or replace function public.is_admin()
+returns boolean as $$
+begin
+  return exists (
+    select 1 from users
+    where id = auth.uid()
+    and role = 'admin'
+  );
+end;
+$$ language plpgsql security definer;
+
+-- Create helper function to create first admin user
+create or replace function public.create_first_admin()
+returns void as $$
+begin
+  insert into public.users (id, email, name, role)
+  select id, email, raw_user_meta_data->>'name', 'admin'::user_role
+  from auth.users
+  where id = auth.uid()
+  and not exists (select 1 from public.users where role = 'admin');
+end;
+$$ language plpgsql security definer;
 
 -- Drop existing wedding_video table if exists
 drop table if exists public.wedding_video;

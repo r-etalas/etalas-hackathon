@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
 import { Snackbar, Alert } from '@mui/material'
 import type { UserRole } from '@/types/supabase'
-import { PostgrestError } from '@supabase/supabase-js'
 
 export default function AuthCallbackPage() {
     const router = useRouter()
@@ -46,10 +45,10 @@ export default function AuthCallbackPage() {
                             metadata: user.user_metadata,
                         })
 
-                        // Check if user already exists
+                        // Check if user already exists and get their role
                         const { data: existingUser, error: checkError } = await supabase
                             .from('users')
-                            .select('id')
+                            .select('id, role')
                             .eq('id', user.id)
                             .single()
 
@@ -60,14 +59,17 @@ export default function AuthCallbackPage() {
 
                         if (existingUser) {
                             console.log('User already exists:', existingUser)
-                            setMessage('Profil sudah ada, melanjutkan ke dashboard...')
+                            setMessage('Profil sudah ada, melanjutkan ke halaman utama...')
                             setSeverity('success')
                             setOpen(true)
-                            setTimeout(() => router.push('/dashboard'), 2000)
+
+                            // Redirect based on role
+                            const redirectPath = existingUser.role === 'admin' ? '/dashboard' : '/showcase'
+                            setTimeout(() => router.push(redirectPath), 2000)
                             return
                         }
 
-                        // Prepare profile data (simplified)
+                        // Prepare profile data
                         const profileData = {
                             id: user.id,
                             email: user.email,
@@ -95,46 +97,18 @@ export default function AuthCallbackPage() {
                         setSeverity('success')
                         setOpen(true)
 
+                        // Redirect to showcase for new users (they are always members by default)
                         console.log('Starting redirect countdown...')
                         setTimeout(() => {
-                            console.log('Redirecting to dashboard...')
-                            router.push('/dashboard')
+                            console.log('Redirecting to showcase...')
+                            router.push('/showcase')
                         }, 2000)
                     } catch (error) {
-                        const profileError = error as PostgrestError
-                        console.error('Error in profile creation:', {
-                            error: profileError,
-                            message: profileError.message,
-                            details: profileError.details,
-                            code: profileError.code
-                        })
-
-                        // Check if it's a permission error
-                        if (profileError.code === '42501' || profileError.message?.includes('permission denied')) {
-                            setMessage('Gagal membuat profil: Tidak memiliki izin yang cukup. Mohon hubungi admin.')
-                            console.log('Attempting to fix permissions...')
-
-                            // Try to enable RLS policies
-                            const { error: policyError } = await supabase.rpc('setup_users_policies')
-                            if (policyError) {
-                                console.error('Failed to setup policies:', policyError)
-                            } else {
-                                console.log('Policies setup successful, retrying profile creation...')
-                                window.location.reload()
-                            }
-                        } else if (profileError.code === '23505') {
-                            setMessage('Profil sudah ada, melanjutkan ke dashboard...')
-                            setSeverity('success')
-                            setTimeout(() => router.push('/dashboard'), 2000)
-                        } else {
-                            const errorMessage = profileError.message?.replace('users_', '') || 'Unknown error'
-                            setMessage(`Gagal membuat profil: ${errorMessage}`)
-                            console.error('Detailed error:', profileError)
-                            setTimeout(() => router.push('/auth/register'), 2000)
-                        }
-
-                        setSeverity(profileError.code === '23505' ? 'success' : 'error')
+                        console.error('Error in profile creation:', error)
+                        setMessage('Gagal membuat profil. Mohon hubungi admin.')
+                        setSeverity('error')
                         setOpen(true)
+                        setTimeout(() => router.push('/auth/register'), 2000)
                     }
                 } else {
                     // If no session, try to exchange the token
