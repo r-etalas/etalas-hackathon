@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
+import { SupabaseClient } from '@supabase/supabase-js'
 import {
     Box,
     TextField,
@@ -28,6 +29,49 @@ import {
 type AuthFormProps = {
     type: 'login' | 'register'
 }
+
+// Fungsi untuk mencatat riwayat login
+const recordLoginActivity = async (supabase: SupabaseClient, userId: string) => {
+    try {
+        console.log('Recording login activity for user:', userId);
+
+        // Insert login activity
+        const { data, error } = await supabase
+            .from('auth_activity')
+            .insert([
+                {
+                    user_id: userId,
+                    created_at: new Date().toISOString()
+                }
+            ])
+            .select('*')
+            .single();
+
+        if (error) {
+            console.error('Error recording login activity:', {
+                message: error.message,
+                details: error.details,
+                hint: error.hint,
+                code: error.code
+            });
+            // Tidak throw error agar proses login tetap berlanjut
+            return null;
+        }
+
+        console.log('Login activity recorded successfully:', data);
+        return data;
+    } catch (error) {
+        console.error('Error recording login activity:', error);
+        if (error instanceof Error) {
+            console.error('Error details:', {
+                message: error.message,
+                stack: error.stack
+            });
+        }
+        // Tidak throw error agar proses login tetap berlanjut
+        return null;
+    }
+};
 
 export function AuthForm({ type }: AuthFormProps) {
     const [email, setEmail] = useState('')
@@ -110,44 +154,49 @@ export function AuthForm({ type }: AuthFormProps) {
 
                 if (session) {
                     try {
-                        // Get user role from database
-                        const { data: userData, error: userError } = await supabase
-                            .from('users')
-                            .select('role, name')
-                            .eq('id', session.user.id)
-                            .single()
+                        // Record login activity
+                        const activityData = await recordLoginActivity(supabase, session.user.id);
 
-                        if (userError) {
-                            console.error('Error fetching user role:', userError)
-                            throw new Error('Gagal mengambil data pengguna')
-                        }
-
-                        // Only update if data is different
-                        const currentName = userData?.name || session.user.user_metadata.name
-                        const currentRole = userData?.role || 'member'
-
-                        if (currentName !== session.user.user_metadata.name || !userData) {
-                            const { error: profileError } = await supabase
+                        if (activityData) {
+                            // Get user role from database
+                            const { data: userData, error: userError } = await supabase
                                 .from('users')
-                                .upsert({
-                                    id: session.user.id,
-                                    email: session.user.email,
-                                    name: currentName,
-                                    role: currentRole,
-                                    updated_at: new Date().toISOString()
-                                })
+                                .select('role, name')
+                                .eq('id', session.user.id)
+                                .single()
 
-                            if (profileError) {
-                                console.error('Error updating profile:', profileError)
-                                // Continue with redirect even if profile update fails
+                            if (userError) {
+                                console.error('Error fetching user role:', userError)
+                                throw new Error('Gagal mengambil data pengguna')
                             }
-                        }
 
-                        // Redirect based on role
-                        if (userData?.role === 'admin') {
-                            window.location.href = '/dashboard'
-                        } else {
-                            window.location.href = '/showcase'
+                            // Only update if data is different
+                            const currentName = userData?.name || session.user.user_metadata.name
+                            const currentRole = userData?.role || 'member'
+
+                            if (currentName !== session.user.user_metadata.name || !userData) {
+                                const { error: profileError } = await supabase
+                                    .from('users')
+                                    .upsert({
+                                        id: session.user.id,
+                                        email: session.user.email,
+                                        name: currentName,
+                                        role: currentRole,
+                                        updated_at: new Date().toISOString()
+                                    })
+
+                                if (profileError) {
+                                    console.error('Error updating profile:', profileError)
+                                    // Continue with redirect even if profile update fails
+                                }
+                            }
+
+                            // Redirect based on role
+                            if (userData?.role === 'admin') {
+                                window.location.href = '/dashboard'
+                            } else {
+                                window.location.href = '/showcase'
+                            }
                         }
                     } catch (error) {
                         console.error('Error in profile update:', error)

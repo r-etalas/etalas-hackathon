@@ -159,4 +159,30 @@ $$ language plpgsql;
 create trigger wedding_video_updated_at
   before update on public.wedding_video
   for each row
-  execute procedure public.handle_updated_at(); 
+  execute procedure public.handle_updated_at();
+
+-- Membuat tabel video_plays untuk melacak pemutaran video
+create table public.video_plays (
+    id uuid default gen_random_uuid() primary key,
+    video_id uuid references public.wedding_video(id) on delete cascade not null,
+    user_id uuid references auth.users(id) on delete cascade not null,
+    played_at timestamp with time zone default timezone('utc'::text, now()) not null,
+    play_duration integer,
+    completed boolean default false
+);
+
+-- Mengaktifkan Row Level Security
+alter table public.video_plays enable row level security;
+
+-- Membuat kebijakan akses
+create policy "Users can view their own video plays"
+    on video_plays for select
+    using (auth.uid() = user_id);
+
+create policy "Users can insert their own video plays"
+    on video_plays for insert
+    with check (auth.uid() = user_id);
+
+create policy "Admins can view all video plays"
+    on video_plays for select
+    using (is_admin()); 

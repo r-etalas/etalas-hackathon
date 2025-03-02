@@ -1,8 +1,21 @@
 'use client';
 
 import { Box, Container, Typography, Button, Card, CardContent, Stack } from '@mui/material';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 export default function HomePage() {
+    const router = useRouter();
+
+    useEffect(() => {
+        // Disini Anda bisa menambahkan logika pengecekan autentikasi yang lebih kompleks
+        const isAuthenticated = false; // Ganti dengan logika autentikasi yang sebenarnya
+
+        if (!isAuthenticated) {
+            router.push('/auth/login');
+        }
+    }, [router]);
+
     return (
         <Container maxWidth="lg">
             <Box sx={{ my: 4 }}>

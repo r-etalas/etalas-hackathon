@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { PlayArrow } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import i18next from 'i18next';
@@ -59,6 +59,8 @@ const ShowcasePage = () => {
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [selectedVideo, setSelectedVideo] = useState<WeddingVideo | null>(null);
     const [openDialog, setOpenDialog] = useState(false);
+    const [playStartTime, setPlayStartTime] = useState<number | null>(null);
+    const videoRef = useRef<HTMLVideoElement>(null);
 
     const supabase = createBrowserClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -194,6 +196,55 @@ const ShowcasePage = () => {
         const minutes = Math.floor(seconds / 60);
         const remainingSeconds = seconds % 60;
         return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+    };
+
+    const handleVideoPlay = () => {
+        setPlayStartTime(Date.now());
+    };
+
+    const handleVideoPause = async () => {
+        if (!selectedVideo || !currentUser || !playStartTime || !videoRef.current) return;
+
+        const playDuration = Math.floor((Date.now() - playStartTime) / 1000); // Konversi ke detik
+        const completed = videoRef.current.currentTime >= (videoRef.current.duration - 5); // Anggap selesai jika sisa 5 detik atau kurang
+
+        try {
+            const { error } = await supabase
+                .from('video_plays')
+                .insert({
+                    video_id: selectedVideo.id,
+                    user_id: currentUser.id,
+                    play_duration: playDuration,
+                    completed: completed
+                });
+
+            if (error) throw error;
+        } catch (error) {
+            console.error('Error recording video play:', error);
+        }
+
+        setPlayStartTime(null);
+    };
+
+    const handleVideoEnded = async () => {
+        if (!selectedVideo || !currentUser || !playStartTime) return;
+
+        try {
+            const { error } = await supabase
+                .from('video_plays')
+                .insert({
+                    video_id: selectedVideo.id,
+                    user_id: currentUser.id,
+                    play_duration: selectedVideo.duration,
+                    completed: true
+                });
+
+            if (error) throw error;
+        } catch (error) {
+            console.error('Error recording video completion:', error);
+        }
+
+        setPlayStartTime(null);
     };
 
     return (
@@ -382,12 +433,16 @@ const ShowcasePage = () => {
                         <DialogTitle>{selectedVideo.title}</DialogTitle>
                         <DialogContent>
                             <video
+                                ref={videoRef}
                                 controls
                                 controlsList="nodownload"
                                 onContextMenu={(e) => e.preventDefault()}
                                 style={{ width: '100%', marginTop: '16px' }}
                                 src={selectedVideo.video_url}
                                 poster={selectedVideo.thumbnail_url || undefined}
+                                onPlay={handleVideoPlay}
+                                onPause={handleVideoPause}
+                                onEnded={handleVideoEnded}
                             >
                                 Your browser does not support the video tag.
                             </video>
