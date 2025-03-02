@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import {
     Box,
@@ -62,6 +62,16 @@ interface EngagementDataPoint {
     watchTime: number;
 }
 
+interface VideoPlay {
+    video_id: string;
+    play_duration: number;
+    completed: boolean;
+    wedding_video: {
+        id: string;
+        title: string;
+    };
+}
+
 const Analytics: React.FC = () => {
     const theme = useTheme();
     const [loginData, setLoginData] = useState<LoginDataPoint[]>([]);
@@ -72,26 +82,7 @@ const Analytics: React.FC = () => {
     const [availableVideos, setAvailableVideos] = useState<Array<{ id: string; title: string }>>([]);
     const [engagementData, setEngagementData] = useState<EngagementDataPoint[]>([]);
 
-    useEffect(() => {
-        fetchUsers();
-        fetchLoginData();
-        fetchAvailableVideos();
-        fetchVideoPlayData();
-        fetchEngagementData();
-
-        // Set interval untuk memperbarui data setiap 5 menit
-        const interval = setInterval(() => {
-            fetchLoginData();
-            fetchVideoPlayData();
-            fetchEngagementData();
-        }, 5 * 60 * 1000);
-
-        return () => {
-            clearInterval(interval);
-        };
-    }, []);
-
-    const fetchUsers = async () => {
+    const fetchUsers = useCallback(async () => {
         try {
             const { data: usersList } = await supabase
                 .from('users')
@@ -102,9 +93,9 @@ const Analytics: React.FC = () => {
         } catch (error) {
             console.error('Error fetching users:', error);
         }
-    };
+    }, []);
 
-    const fetchLoginData = async (userId?: string) => {
+    const fetchLoginData = useCallback(async (userId?: string) => {
         try {
             const lastWeekDate = getLastWeekDate();
             console.log('Mengambil data login dari:', lastWeekDate);
@@ -115,7 +106,6 @@ const Analytics: React.FC = () => {
                 .gte('created_at', lastWeekDate)
                 .order('created_at', { ascending: true });
 
-            // Filter berdasarkan user yang dipilih jika ada
             if (userId || selectedUser) {
                 query = query.eq('user_id', userId || selectedUser);
             }
@@ -142,7 +132,7 @@ const Analytics: React.FC = () => {
             console.error('Error di fetchLoginData:', error);
             setLoginData(generateEmptyData());
         }
-    };
+    }, [selectedUser]);
 
     const processLoginHistoryData = (loginHistory: { created_at: string }[]): LoginDataPoint[] => {
         // Buat map untuk menghitung login per hari
@@ -208,7 +198,7 @@ const Analytics: React.FC = () => {
         });
     };
 
-    const fetchAvailableVideos = async () => {
+    const fetchAvailableVideos = useCallback(async () => {
         try {
             const { data: videos, error } = await supabase
                 .from('wedding_video')
@@ -220,9 +210,9 @@ const Analytics: React.FC = () => {
         } catch (error) {
             console.error('Error fetching available videos:', error);
         }
-    };
+    }, []);
 
-    const fetchVideoPlayData = async (userId?: string) => {
+    const fetchVideoPlayData = useCallback(async (userId?: string) => {
         try {
             console.log('Mengambil data pemutaran video');
 
@@ -250,7 +240,6 @@ const Analytics: React.FC = () => {
             const { data: playData, error } = await query;
 
             if (error) {
-                console.error('Error mengambil data pemutaran:', error);
                 throw error;
             }
 
@@ -270,8 +259,9 @@ const Analytics: React.FC = () => {
                 completions: number;
             }>();
 
-            playData.forEach(play => {
-                const videoTitle = play.wedding_video.title;
+            (playData as unknown as VideoPlay[])?.forEach(play => {
+                if (!play.wedding_video) return;
+                const videoTitle = play.wedding_video.title || 'Unknown';
                 const current = videoStats.get(videoTitle) || {
                     title: videoTitle,
                     plays: 0,
@@ -300,9 +290,9 @@ const Analytics: React.FC = () => {
             console.error('Error di fetchVideoPlayData:', error);
             setVideoPlayData([]);
         }
-    };
+    }, [selectedUser, selectedVideo]);
 
-    const fetchEngagementData = async () => {
+    const fetchEngagementData = useCallback(async () => {
         try {
             const lastWeekDate = getLastWeekDate();
             console.log('Mengambil data engagement dari:', lastWeekDate);
@@ -367,7 +357,7 @@ const Analytics: React.FC = () => {
             console.error('Error:', error);
             setEngagementData(generateEmptyEngagementData());
         }
-    };
+    }, [selectedUser, selectedVideo]);
 
     // Fungsi helper untuk menghasilkan data engagement kosong
     const generateEmptyEngagementData = (): EngagementDataPoint[] => {
@@ -430,6 +420,25 @@ const Analytics: React.FC = () => {
             fetchEngagementData()
         ]);
     };
+
+    useEffect(() => {
+        fetchUsers();
+        fetchLoginData();
+        fetchAvailableVideos();
+        fetchVideoPlayData();
+        fetchEngagementData();
+
+        // Set interval untuk memperbarui data setiap 5 menit
+        const interval = setInterval(() => {
+            fetchLoginData();
+            fetchVideoPlayData();
+            fetchEngagementData();
+        }, 5 * 60 * 1000);
+
+        return () => {
+            clearInterval(interval);
+        };
+    }, [fetchLoginData, fetchVideoPlayData, fetchEngagementData, fetchUsers, fetchAvailableVideos]);
 
     return (
         <Box sx={{ p: 3 }}>
