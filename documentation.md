@@ -13,7 +13,7 @@
 
 Etalas Hackathon adalah aplikasi web yang dikembangkan sebagai bagian dari hackathon. Aplikasi ini menyediakan platform modern dengan berbagai fitur yang dibangun menggunakan teknologi terkini.
 
-**[>> Klik di sini untuk melihat presentasi proyek di Specstory <<](https://share.specstory.com/stories/ab67796e-d485-47bf-94ae-6c8ee0f895d3)**
+**[>> Klik di sini untuk melihat cursor prompt yg di gunakan untuk membuat feature pada project ini pada Specstory <<](https://share.specstory.com/stories/ab67796e-d485-47bf-94ae-6c8ee0f895d3)**
 
 ## Teknologi yang Digunakan
 
